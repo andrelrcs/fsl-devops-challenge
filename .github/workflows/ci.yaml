@@ -88,6 +88,7 @@ jobs:
       - name: Run tests
         env:
           CI: true
+          REACT_APP_API_URL: http://localhost:8080
         run: npm run test
 
   build:
