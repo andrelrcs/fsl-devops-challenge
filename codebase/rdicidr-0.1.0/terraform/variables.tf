@@ -10,6 +10,16 @@ variable "app_name" {
   default     = "rdicidr"
 }
 
+variable "environment" {
+  type        = string
+  description = "Deployment environment; scopes resource names and state"
+
+  validation {
+    condition     = contains(["devel", "stage"], var.environment)
+    error_message = "environment must be one of: devel, stage."
+  }
+}
+
 variable "container_image" {
   type        = string
   description = "ECR image URI"

@@ -5,10 +5,17 @@ terraform {
       version = "~> 5.0"
     }
   }
+
+  # Partial config: bucket/key per environment via -backend-config (see envs/).
+  backend "s3" {}
 }
 
 provider "aws" {
   region = var.aws_region
+}
+
+locals {
+  name = "${var.app_name}-${var.environment}"
 }
 
 # --- Networking (default VPC) ---
@@ -27,13 +34,13 @@ data "aws_subnets" "default" {
 # --- ECS Cluster ---
 
 resource "aws_ecs_cluster" "main" {
-  name = "${var.app_name}-cluster"
+  name = "${local.name}-cluster"
 }
 
 # --- IAM ---
 
 resource "aws_iam_role" "ecs_task_execution" {
-  name = "${var.app_name}-task-execution-role"
+  name = "${local.name}-task-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -50,7 +57,7 @@ resource "aws_iam_role" "ecs_task_execution" {
 }
 
 resource "aws_iam_role_policy" "ecs_task_execution_policy" {
-  name = "${var.app_name}-task-execution-policy"
+  name = "${local.name}-task-execution-policy"
   role = aws_iam_role.ecs_task_execution.id
 
   policy = jsonencode({
@@ -76,14 +83,14 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
 # --- CloudWatch ---
 
 resource "aws_cloudwatch_log_group" "app" {
-  name              = "/ecs/${var.app_name}"
+  name              = "/ecs/${local.name}"
   retention_in_days = 30
 }
 
 # --- ECS Task Definition ---
 
 resource "aws_ecs_task_definition" "app" {
-  family                   = var.app_name
+  family                   = local.name
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
@@ -118,7 +125,7 @@ resource "aws_ecs_task_definition" "app" {
 # --- Security Group ---
 
 resource "aws_security_group" "alb" {
-  name        = "${var.app_name}-alb-sg"
+  name        = "${local.name}-alb-sg"
   description = "Security group for ALB"
   vpc_id      = data.aws_vpc.default.id
 
@@ -138,7 +145,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_security_group" "ecs_service" {
-  name        = "${var.app_name}-ecs-sg"
+  name        = "${local.name}-ecs-sg"
   description = "Security group for ECS service"
   vpc_id      = data.aws_vpc.default.id
 
@@ -160,7 +167,7 @@ resource "aws_security_group" "ecs_service" {
 # --- ALB ---
 
 resource "aws_lb" "app" {
-  name               = "${var.app_name}-alb"
+  name               = "${local.name}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
@@ -168,7 +175,7 @@ resource "aws_lb" "app" {
 }
 
 resource "aws_lb_target_group" "app" {
-  name        = "${var.app_name}-tg"
+  name        = "${local.name}-tg"
   port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
@@ -200,7 +207,7 @@ resource "aws_lb_listener" "app" {
 # --- ECS Service ---
 
 resource "aws_ecs_service" "app" {
-  name            = "${var.app_name}-service"
+  name            = "${local.name}-service"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.app.arn
   desired_count   = var.desired_count
