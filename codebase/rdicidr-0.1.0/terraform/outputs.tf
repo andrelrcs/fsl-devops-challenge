@@ -3,6 +3,11 @@ output "alb_dns_name" {
   description = "DNS name of the load balancer"
 }
 
+output "ecr_repository_url" {
+  value       = aws_ecr_repository.app.repository_url
+  description = "ECR repository to push the app image to"
+}
+
 output "cluster_name" {
   value       = aws_ecs_cluster.main.name
   description = "ECS cluster name"
