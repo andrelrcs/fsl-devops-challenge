@@ -26,6 +26,12 @@ jobs:
         with:
           node-version: '15'
 
+      # Compute the key before `npm install`, which can rewrite package-lock.json
+      # and would otherwise make the saved key differ from the restore key.
+      - name: Compute cache key
+        id: cache-key
+        run: echo "key=node-modules-${{ hashFiles('codebase/rdicidr-0.1.0/package-lock.json') }}" >> "$GITHUB_OUTPUT"
+
       - name: Install dependencies
         run: npm install
 
@@ -33,7 +39,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: codebase/rdicidr-0.1.0/node_modules
-          key: node-modules-${{ hashFiles('codebase/rdicidr-0.1.0/package-lock.json') }}
+          key: ${{ steps.cache-key.outputs.key }}
 
   lint:
     needs: [install]
@@ -82,6 +88,7 @@ jobs:
       - name: Run tests
         env:
           CI: true
+          REACT_APP_API_URL: http://localhost:8080
         run: npm run test
 
   build:
