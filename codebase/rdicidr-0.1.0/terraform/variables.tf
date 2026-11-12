@@ -22,8 +22,8 @@ variable "environment" {
 
 variable "container_image" {
   type        = string
-  description = "ECR image URI"
-  default     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/rdicidr:latest"
+  description = "Image URI override; defaults to <this env's ECR repo>:latest"
+  default     = null
 }
 
 variable "container_port" {

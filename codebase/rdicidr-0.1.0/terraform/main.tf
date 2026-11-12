@@ -15,7 +15,14 @@ provider "aws" {
 }
 
 locals {
-  name = "${var.app_name}-${var.environment}"
+  name  = "${var.app_name}-${var.environment}"
+  image = coalesce(var.container_image, "${aws_ecr_repository.app.repository_url}:latest")
+}
+
+# --- ECR ---
+
+resource "aws_ecr_repository" "app" {
+  name = local.name
 }
 
 # --- Networking (default VPC) ---
@@ -100,7 +107,7 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([
     {
       name      = var.app_name
-      image     = var.container_image
+      image     = local.image
       essential = true
 
       portMappings = [
